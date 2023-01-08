@@ -8,6 +8,8 @@
 
 SCRIPT_DIR=$(dirname $(readlink -e $0))
 
+IS_ACTIVE="TRUE"
+
 source "$SCRIPT_DIR/helpers/log.sh"
 source "$SCRIPT_DIR/helpers/colors.sh"
 source "$SCRIPT_DIR/helpers/telegram.sh"

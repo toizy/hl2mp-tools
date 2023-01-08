@@ -1,12 +1,7 @@
 #!/bin/bash
 
-# Preventing direct script invocation
-if [ ${0##*/} == ${BASH_SOURCE[0]##*/} ]; then 
-    echo "WARNING"
-    echo "This script is not meant to be executed directly!"
-    echo "Use this script only by sourcing it."
-    echo ""
-    exit 1
+if [[ -z $IS_ACTIVE ]]; then
+	exit
 fi
 
 # Reset WORKER_RESULT var
