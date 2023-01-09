@@ -19,9 +19,11 @@ if ! [ -d $CONSOLE_LOG_ZIP_DIR ]; then
 	mkdir -p $CONSOLE_LOG_ZIP_DIR
 fi
 
+# Zip the file
 ZIP_FILENAME=$CONSOLE_LOG_ZIP_DIR/$(date +"%b-%d-%Y %H:%M:%S").zip
-log $(nice -n 19 zip -9 "$ZIP_FILENAME" "$CONSOLE_LOG_FILE")
+do_zip "$ZIP_FILENAME" "$CONSOLE_LOG_FILE"
 
+# Trim it
 if (( CONSOLE_LOG_LINES > 0 )); then
 	tempfile=$(mktemp)
 	tail --lines=$CONSOLE_LOG_LINES --silent "$CONSOLE_LOG_FILE" > "$tempfile"

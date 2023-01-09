@@ -1,5 +1,17 @@
 #!/bin/bash
 
+do_zip() {
+	local NICE_CMD=""
+	local FILE_IN=$1
+	local FILE_OUT=$2
+
+	if [[ $ZIP_USE_NICE ]]; then
+		NICE_CMD="nice -n $ZIP_NICE_VALUE"
+	fi
+
+	log $(eval $NICE_CMD zip $ZIP_COMPRESSION_RATE "$FILE_IN" "$FILE_OUT")
+}
+
 # The function searches for the files with the certain extension
 # in the source directory, compresses them and puts in the 
 # target directory. Keeps only the specified number of source files.
@@ -29,11 +41,6 @@ list_and_pack_files() {
 	local COMPRESSED_SIZE=0
 	local COUNTER=0
 	local NOT_REMOVED_COUNT=0
-	local NICE_CMD=""
-
-	if [[ $ZIP_USE_NICE ]]; then
-		NICE_CMD="nice -n $ZIP_NICE_VALUE"
-	fi
 
 	for i in $(eval $COMMAND)
 	do
@@ -41,7 +48,7 @@ list_and_pack_files() {
 			ZIP_FILENAME="${i##*/}".zip
 			PERCENT=$(( ($COUNTER*1000/$TOTAL_COUNT+5)/10 ))
 			logn "[$PERCENT%] Item: $((COUNTER + 1))/$TOTAL_COUNT\t"
-			log $(eval $NICE_CMD zip $ZIP_COMPRESSION_RATE "$DESTINATION_PATH/$ZIP_FILENAME" "$i")
+			do_zip "$DESTINATION_PATH/$ZIP_FILENAME" "$i"
 			ZIP_SIZE=$(stat -c %s "$DESTINATION_PATH/$ZIP_FILENAME")
 			COMPRESSED_SIZE=$((ZIP_SIZE + COMPRESSED_SIZE))
 			FILESLEFT=$(($TOTAL_COUNT - $COUNTER))
