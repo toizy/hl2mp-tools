@@ -51,15 +51,15 @@ logn() {
 
 # Traces call stack and shows text messages
 log_debug() {
-	echo -e "${BGREEN}[DEBUG] ${BGRAY}Relative path: [ ${BYELLOW}$SCRIPT_DIR/${NORMAL}${BGRAY} ]. Call stack:${NORMAL}"
+	local MSG="${BGREEN}[DEBUG] ${BGRAY}Relative path: [ ${BYELLOW}$SCRIPT_DIR/${NORMAL}${BGRAY} ]. Call stack:${NORMAL}\n"
 	local i
 	local SRC_PATH=""
-	#for (( i=1; i<${#FUNCNAME[*]}; i++ )); do
 	for (( i=${#FUNCNAME[*]}-1; i>=1; i-- )); do
 		SRC_PATH=$(realpath --relative-to="$SCRIPT_DIR" "${BASH_SOURCE[$i]}")
-		echo -e "\t${BGRAY}Function: [ ${BYELLOW}${FUNCNAME[$i]}${BGRAY} ] "\
-			"File: [ ${BYELLOW}$SRC_PATH${BGRAY} ] "\
-			"Line: [ ${BYELLOW}${BASH_LINENO[$i-1]}${BGRAY} ]"
+		MSG="$MSG\t${BGRAY}Function: [ ${BYELLOW}${FUNCNAME[$i]}${BGRAY} ] "
+		MSG=$MSG"File: [ ${BYELLOW}$SRC_PATH${BGRAY} ] "
+		MSG=$MSG"Line: [ ${BYELLOW}${BASH_LINENO[$i-1]}${BGRAY} ]\n"
 	done
-	echo -e "\t${BGRAY}Messsage: [ ${BYELLOW}$*${BGRAY} ]${NORMAL}"
+	MSG=$MSG"\t${BGRAY}Messsage: [ ${BYELLOW}$*${BGRAY} ]${NORMAL}"
+	log $MSG
 }
