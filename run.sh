@@ -13,6 +13,7 @@ IS_ACTIVE="TRUE"
 source "$SCRIPT_DIR/helpers/log.sh"
 source "$SCRIPT_DIR/helpers/colors.sh"
 source "$SCRIPT_DIR/helpers/telegram.sh"
+source "$SCRIPT_DIR/helpers/functions.sh"
 
 #**************************************************************
 # ARE ALL DEPENCIES ALREADY INSTALLED OR NOT?
@@ -88,6 +89,9 @@ do
 	(( COUNTER++ ))
 done
 
+# Include the settings file
+. $FILENAME
+
 #**************************************************************
 # EXECUTE WORKERS
 #**************************************************************
@@ -96,12 +100,12 @@ RESULT=""
 I=0
 
 if [[ $WORKER_DEMO == "yes" ]]; then
-	. $SCRIPT_DIR/workers/demos/go.sh "$FILENAME"
+	. $SCRIPT_DIR/workers/demos/go.sh
 	RESULT=$RESULT'['$((++I))'] Demo packing done. '$WORKER_RESULT'%0A'
 fi
 
 if [[ $WORKER_LOGS == "yes" ]]; then
-	. $SCRIPT_DIR/workers/logs/go.sh "$FILENAME"
+	. $SCRIPT_DIR/workers/logs/go.sh
 	RESULT=$RESULT'['$((++I))'] Logs trimming and packing done.'$WORKER_RESULT'%0A'
 fi
 
