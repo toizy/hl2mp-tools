@@ -48,3 +48,18 @@ log() {
 logn() {
 	_log "true" $*
 }
+
+# Traces call stack and shows text messages
+log_debug() {
+	echo -e "${BGREEN}[DEBUG] ${BGRAY}Relative path: [ ${BYELLOW}$SCRIPT_DIR/${NORMAL}${BGRAY} ]. Call stack:${NORMAL}"
+	local i
+	local SRC_PATH=""
+	#for (( i=1; i<${#FUNCNAME[*]}; i++ )); do
+	for (( i=${#FUNCNAME[*]}-1; i>=1; i-- )); do
+		SRC_PATH=$(realpath --relative-to="$SCRIPT_DIR" "${BASH_SOURCE[$i]}")
+		echo -e "\t${BGRAY}Function: [ ${BYELLOW}${FUNCNAME[$i]}${BGRAY} ] "\
+			"File: [ ${BYELLOW}$SRC_PATH${BGRAY} ] "\
+			"Line: [ ${BYELLOW}${BASH_LINENO[$i-1]}${BGRAY} ]"
+	done
+	echo -e "\t${BGRAY}Messsage: [ ${BYELLOW}$*${BGRAY} ]${NORMAL}"
+}

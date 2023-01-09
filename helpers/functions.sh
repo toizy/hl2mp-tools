@@ -72,11 +72,11 @@ function send_to_telegram()
 	if [[ -z $TELEGRAM_BOT_TOKEN || -z $TELEGRAM_CHATID ||\
 		-z $TELEGRAM_USERID || -z $TELEGRAM_USERNAME ||\
 		-z $CONFIG_DESCRIPTION ]]; then
-		log "[send_to_telegram] One or more of arguments are not set. Terminating."
+		log_debug "[send_to_telegram] One or more of arguments are not set. Terminating."
 		exit 1
 	fi
 	if [[ -z $* ]]; then
-		log "[send_to_telegram] No arguments passed."
+		log_debug "[send_to_telegram] No arguments passed."
 		exit 1
 	fi
 	local CR='%0A%0A'
