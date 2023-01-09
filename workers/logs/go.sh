@@ -37,7 +37,7 @@ do
 		ZIP_FILENAME="${i##*/}".zip
 		PERCENT=$(( ($COUNTER*1000/$TOTAL_COUNT+5)/10 ))
 		logn "[$PERCENT%] Item: $((COUNTER + 1))/$TOTAL_COUNT\t"
-		log $(nice -n 19 zip -9 "$LOGS_ZIP_DIR/$ZIP_FILENAME" "$i")
+		log $(nice -n 19 zip $ZIP_COMPRESSION_RATE "$LOGS_ZIP_DIR/$ZIP_FILENAME" "$i")
 		ZIP_SIZE=$(stat -c %s "$LOGS_ZIP_DIR/$ZIP_FILENAME")
 		COMPRESSED_SIZE=$((ZIP_SIZE + COMPRESSED_SIZE))
 		FILESLEFT=$(($TOTAL_COUNT - $COUNTER))
