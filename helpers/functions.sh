@@ -1,9 +1,5 @@
 #!/bin/bash
 
-if [[ -z $IS_ACTIVE ]]; then
-	exit
-fi
-
 # The function searches for the files with the certain extension
 # in the source directory, compresses them and puts in the 
 # target directory. Keeps only the specified number of source files.
@@ -66,4 +62,29 @@ list_and_pack_files() {
 	log "Files count: ${BWHITE}$TOTAL_COUNT${NORMAL}, "\
 		"total size: ${BWHITE}$TOTAL_SIZE_H${NORMAL}, "\
 		"compressed size: ${BWHITE}$COMPRESSED_SIZE_H${NORMAL}"
+}
+
+# Sends a text message to a Telegram group via BotAPI
+# Arguments:
+# $* - Text message
+function send_to_telegram()
+{
+	if [[ -z $TELEGRAM_BOT_TOKEN || -z $TELEGRAM_CHATID ||\
+		-z $TELEGRAM_USERID || -z $TELEGRAM_USERNAME ||\
+		-z $CONFIG_DESCRIPTION ]]; then
+		log "[send_to_telegram] One or more of arguments are not set. Terminating."
+		exit 1
+	fi
+	if [[ -z $* ]]; then
+		log "[send_to_telegram] No arguments passed."
+		exit 1
+	fi
+	local CR='%0A%0A'
+	local GREETING='HL2DM-Tools report'
+	local MSG='<a href="tg://user?id='$USERID'">@'$USERNAME'</a> <b>'$CONFIG_DESCRIPTION'</b>'$CR$GREETING$CR$*
+	curl -s -o /dev/null \
+	--data "parse_mode=HTML" \
+	--data "text=$MSG" \
+	--data "chat_id=$TELEGRAM_CHATID" \
+	'https://api.telegram.org/bot'$TELEGRAM_BOT_TOKEN'/sendMessage'
 }

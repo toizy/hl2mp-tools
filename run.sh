@@ -8,12 +8,11 @@
 
 SCRIPT_DIR=$(dirname $(readlink -e $0))
 
-IS_ACTIVE="TRUE"
+IS_ACTIVE=true
 
+source "$SCRIPT_DIR/helpers/functions.sh"
 source "$SCRIPT_DIR/helpers/log.sh"
 source "$SCRIPT_DIR/helpers/colors.sh"
-source "$SCRIPT_DIR/helpers/telegram.sh"
-source "$SCRIPT_DIR/helpers/functions.sh"
 
 #**************************************************************
 # ARE ALL DEPENCIES ALREADY INSTALLED OR NOT?
