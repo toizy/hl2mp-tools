@@ -17,6 +17,7 @@ log "Trimming console.log file"
 # Create zip output dir if not exist
 if ! [ -d $CONSOLE_LOG_ZIP_DIR ]; then
 	mkdir -p $CONSOLE_LOG_ZIP_DIR
+	check_success_or_exit $?
 fi
 
 # Zip the file

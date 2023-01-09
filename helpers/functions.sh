@@ -1,6 +1,27 @@
 #!/bin/bash
 
-do_zip() {
+# Checks first argument for error. If it's not equal 0, log it and terminate
+# Arguments:
+# $1 - Error code given by $?:
+#	ls /home/notexistingdir
+#	check_success_or_exit $?
+#	will return code 2 and trigger logging + script termination
+function check_success_or_exit() {
+	if [[ -z $1 ]]; then
+		log_debug "No arguments passed."
+		exit 1
+	fi
+	if [[ $1 != 0 ]]; then
+		log_debug "Error occured: $1. Terminating."
+		exit 2
+	fi
+}
+
+# Helper function that compresses a file. It's used in some other functions like 'list_and_pack_files'
+# Arguments:
+# $1 - Input file
+# $2 - Output file
+function do_zip() {
 	local NICE_CMD=""
 	local FILE_IN=$1
 	local FILE_OUT=$2
@@ -20,7 +41,7 @@ do_zip() {
 # $2 - destination path
 # $3 - file extension ('*.log', '*.dem' etc.)
 # $4 - num of files to be kept
-list_and_pack_files() {
+function list_and_pack_files() {
 	local SOURCE_PATH=$1
 	local DESTINATION_PATH=$2
 	local EXT=$3
@@ -29,6 +50,7 @@ list_and_pack_files() {
 	# Create zip output dir if not exist
 	if ! [ -d $DESTINATION_PATH ]; then
 		mkdir -p $DESTINATION_PATH
+		check_success_or_exit $?
 	fi
 
 	local ZIP_FILENAME=""
@@ -79,6 +101,7 @@ list_and_pack_files() {
 # Sends a text message to a Telegram group via BotAPI
 # Arguments:
 # $* - Text message
+# The function uses internal TELEGRAM_ and CONFIG_DESCRIPTION variables defined in the config file.
 function send_to_telegram()
 {
 	if [[ -z $TELEGRAM_BOT_TOKEN || -z $TELEGRAM_CHATID ||\
