@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ -z $IS_ACTIVE ]]; then
+	exit
+fi
+
 # The function searches for the files with the certain extension
 # in the source directory, compresses them and puts in the 
 # target directory. Keeps only the specified number of source files.
