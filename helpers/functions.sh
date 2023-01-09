@@ -29,6 +29,11 @@ list_and_pack_files() {
 	local COMPRESSED_SIZE=0
 	local COUNTER=0
 	local NOT_REMOVED_COUNT=0
+	local NICE_CMD=""
+
+	if [[ $ZIP_USE_NICE ]]; then
+		NICE_CMD="nice -n $ZIP_NICE_VALUE"
+	fi
 
 	for i in $(eval $COMMAND)
 	do
@@ -36,7 +41,7 @@ list_and_pack_files() {
 			ZIP_FILENAME="${i##*/}".zip
 			PERCENT=$(( ($COUNTER*1000/$TOTAL_COUNT+5)/10 ))
 			logn "[$PERCENT%] Item: $((COUNTER + 1))/$TOTAL_COUNT\t"
-			log $(nice -n 19 zip $ZIP_COMPRESSION_RATE "$DESTINATION_PATH/$ZIP_FILENAME" "$i")
+			log $(eval $NICE_CMD zip $ZIP_COMPRESSION_RATE "$DESTINATION_PATH/$ZIP_FILENAME" "$i")
 			ZIP_SIZE=$(stat -c %s "$DESTINATION_PATH/$ZIP_FILENAME")
 			COMPRESSED_SIZE=$((ZIP_SIZE + COMPRESSED_SIZE))
 			FILESLEFT=$(($TOTAL_COUNT - $COUNTER))
