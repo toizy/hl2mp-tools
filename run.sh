@@ -108,5 +108,4 @@ if [[ $WORKER_LOGS == "yes" ]]; then
 	RESULT=$RESULT'['$((++I))'] Logs trimming and packing done.'$WORKER_RESULT'%0A'
 fi
 
-
 send_to_telegram "$RESULT"

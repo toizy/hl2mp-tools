@@ -21,8 +21,8 @@ if ! [ -d $CONSOLE_LOG_ZIP_DIR ]; then
 fi
 
 # Zip the file
-ZIP_FILENAME=$CONSOLE_LOG_ZIP_DIR/$(date +"%b-%d-%Y %H:%M:%S").zip
-do_zip "$ZIP_FILENAME" "$CONSOLE_LOG_FILE"
+ZIP_FILENAME="$CONSOLE_LOG_ZIP_DIR/$(date +"%b-%d-%Y_%H:%M:%S").zip"
+do_zip "$CONSOLE_LOG_FILE" "$ZIP_FILENAME"
 
 # Trim it
 if (( CONSOLE_LOG_LINES > 0 )); then

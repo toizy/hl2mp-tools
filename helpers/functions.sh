@@ -26,11 +26,16 @@ function do_zip() {
 	local FILE_IN=$1
 	local FILE_OUT=$2
 
+	# Check for spaces in the FILE_OUT (to prevent 'zip warning: name not matched') 
+	if [[ $FILE_OUT =~ [[:space:]] ]]; then
+		log_debug "There are spaces in the path. The result may be incorrect."
+	fi
+
 	if [[ $ZIP_USE_NICE ]]; then
 		NICE_CMD="nice -n $ZIP_NICE_VALUE"
 	fi
 
-	log $(eval $NICE_CMD zip $ZIP_COMPRESSION_RATE "$FILE_IN" "$FILE_OUT")
+	log $(eval $NICE_CMD zip $ZIP_COMPRESSION_RATE "$FILE_OUT" "$FILE_IN")
 }
 
 # The function searches for the files with the certain extension
@@ -44,7 +49,7 @@ function do_zip() {
 function list_and_pack_files() {
 	local SOURCE_PATH=$1
 	local DESTINATION_PATH=$2
-	local EXT=$3
+	local NAMEMASK=$3
 	local KEEP_COUNT=$4
 	
 	# Create zip output dir if not exist
@@ -57,7 +62,7 @@ function list_and_pack_files() {
 	local PERCENT=0
 	local ZIP_SIZE=0
 	local FILESLEFT=0
-	local COMMAND="find $SOURCE_PATH -maxdepth 1 -name $EXT -print"
+	local COMMAND="find $SOURCE_PATH -maxdepth 1 -name $NAMEMASK -print"
 	local TOTAL_COUNT=$(eval $COMMAND | wc -l)
 	local TOTAL_SIZE=$(eval $COMMAND | xargs stat --format=%s | awk '{s+=$1} END {print s}')
 	local COMPRESSED_SIZE=0
@@ -70,7 +75,7 @@ function list_and_pack_files() {
 			ZIP_FILENAME="${i##*/}".zip
 			PERCENT=$(( ($COUNTER*1000/$TOTAL_COUNT+5)/10 ))
 			logn "[$PERCENT%] Item: $((COUNTER + 1))/$TOTAL_COUNT\t"
-			do_zip "$DESTINATION_PATH/$ZIP_FILENAME" "$i"
+			do_zip "$i" "$DESTINATION_PATH/$ZIP_FILENAME"
 			ZIP_SIZE=$(stat -c %s "$DESTINATION_PATH/$ZIP_FILENAME")
 			COMPRESSED_SIZE=$((ZIP_SIZE + COMPRESSED_SIZE))
 			FILESLEFT=$(($TOTAL_COUNT - $COUNTER))
