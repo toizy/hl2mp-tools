@@ -17,6 +17,31 @@ function check_success_or_exit() {
 	fi
 }
 
+# Run enabled workers for a config.
+# Arguments:
+#	$1 - config filename
+function run_workers() {
+	if [[ ! -f $1 ]]; then
+		return 1
+	fi
+	. $1
+	local WORKERS_RESULT=""
+	local STEP=0
+	if [[ $WORKER_DEMO == "yes" ]]; then
+		. $SCRIPT_DIR/workers/demos/go.sh
+		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Demo packing is done. '$WORKER_RESULT'%0A'
+	fi
+	if [[ $WORKER_LOGS == "yes" ]]; then
+		. $SCRIPT_DIR/workers/logs/go.sh
+		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Logs trimming and packing is done. '$WORKER_RESULT'%0A'
+	fi
+	if [[ $WORKER_DISK == "yes" ]]; then
+		. $SCRIPT_DIR/workers/disk/go.sh
+		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Disk space checks are done. '$WORKER_RESULT'%0A'
+	fi
+	send_to_telegram "$WORKERS_RESULT"
+}
+
 # Helper function that compresses a file. It's used in some other functions like 'list_and_pack_files'
 # Arguments:
 # $1 - Input file
@@ -51,7 +76,7 @@ function list_and_pack_files() {
 	local DESTINATION_PATH=$2
 	local NAMEMASK=$3
 	local KEEP_COUNT=$4
-	
+
 	# Create zip output dir if not exist
 	if ! [ -d $DESTINATION_PATH ]; then
 		mkdir -p $DESTINATION_PATH
@@ -62,35 +87,39 @@ function list_and_pack_files() {
 	local PERCENT=0
 	local ZIP_SIZE=0
 	local FILESLEFT=0
-	local COMMAND="find $SOURCE_PATH -maxdepth 1 -name $NAMEMASK -print"
-	local TOTAL_COUNT=$(eval $COMMAND | wc -l)
-	local TOTAL_SIZE=$(eval $COMMAND | xargs stat --format=%s | awk '{s+=$1} END {print s}')
+	local TOTAL_COUNT=0
+	local TOTAL_SIZE=0
 	local COMPRESSED_SIZE=0
 	local COUNTER=0
 	local NOT_REMOVED_COUNT=0
-
-	for i in $(eval $COMMAND)
-	do
-		if [[ -f "$i" ]]; then
-			ZIP_FILENAME="${i##*/}".zip
-			PERCENT=$(( ($COUNTER*1000/$TOTAL_COUNT+5)/10 ))
-			logn "[$PERCENT%] Item: $((COUNTER + 1))/$TOTAL_COUNT\t"
-			do_zip "$i" "$DESTINATION_PATH/$ZIP_FILENAME"
-			ZIP_SIZE=$(stat -c %s "$DESTINATION_PATH/$ZIP_FILENAME")
-			COMPRESSED_SIZE=$((ZIP_SIZE + COMPRESSED_SIZE))
-			FILESLEFT=$(($TOTAL_COUNT - $COUNTER))
-			if (( FILESLEFT > KEEP_COUNT )); then
-				rm -fr $i
-				if [[ $? == 0 ]]; then
-					log "File ${i##*/} removed."
-				else
-					log "Error: file ${i##*/} can not be removed."
-					((NOT_REMOVED_COUNT++))
+	local COMMAND="find $SOURCE_PATH -maxdepth 1 -name $NAMEMASK -print"
+	TOTAL_COUNT=$(eval $COMMAND | wc -l)
+	if (( TOTAL_COUNT > 0 )); then
+		TOTAL_SIZE=$(eval $COMMAND | xargs stat --format=%s | awk '{s+=$1} END {print s}')
+	
+		for i in $(eval $COMMAND)
+		do
+			if [[ -f "$i" ]]; then
+				ZIP_FILENAME="${i##*/}".zip
+				PERCENT=$(( ($COUNTER*1000/$TOTAL_COUNT+5)/10 ))
+				logn "[$PERCENT%] Item: $((COUNTER + 1))/$TOTAL_COUNT\t"
+				do_zip "$i" "$DESTINATION_PATH/$ZIP_FILENAME"
+				ZIP_SIZE=$(stat -c %s "$DESTINATION_PATH/$ZIP_FILENAME")
+				COMPRESSED_SIZE=$((ZIP_SIZE + COMPRESSED_SIZE))
+				FILESLEFT=$(($TOTAL_COUNT - $COUNTER))
+				if (( FILESLEFT > KEEP_COUNT )); then
+					rm -fr $i
+					if [[ $? == 0 ]]; then
+						log "File ${i##*/} removed."
+					else
+						log "Error: file ${i##*/} can not be removed."
+						((NOT_REMOVED_COUNT++))
+					fi
 				fi
+				((COUNTER++))
 			fi
-			((COUNTER++))
-		fi
-	done
+		done
+	fi
 
 	# Update worker result
 	local TOTAL_SIZE_H=$(numfmt --to iec --format %8.2f $TOTAL_SIZE)
@@ -127,4 +156,38 @@ function send_to_telegram()
 	--data "text=$MSG" \
 	--data "chat_id=$TELEGRAM_CHATID" \
 	'https://api.telegram.org/bot'$TELEGRAM_BOT_TOKEN'/sendMessage'
+}
+
+# Are the all dependencies installed? If not, install them!
+function check_dependencies()
+{
+
+	echo -e "${BOLD}Checking dependencies... ${NORMAL}"
+
+	DEPENDENCIES=("zip")
+	PKG_INSTALLED=""
+	PKG_NOT_INSTALLED=""
+
+	for i in "${DEPENDENCIES[@]}"; do
+		if [[ ! $(dpkg-query -s $i 2>/dev/null) ]]; then
+			echo -en "Installing package ${BYELLOW}${i}${NORMAL}... "
+			if [[ $(sudo apt-get install -q -y ${i}q &>/dev/null) ]]; then
+				echo -e "ok"
+				PKG_INSTALLED="$PKG_INSTALLED ${BYELLOW}${i}${NORMAL}"
+			else
+				echo -e "not installed"
+				PKG_NOT_INSTALLED="$PKG_NOT_INSTALLED ${BYELLOW}${i}${NORMAL}"
+			fi
+		fi
+	done
+
+	if [[ ! -z $PKG_INSTALLED ]]; then
+		echo -e "Following packages has been installed:$PKG_INSTALLED"
+	fi
+
+	if [[ ! -z $PKG_NOT_INSTALLED ]]; then
+		echo -e "Following packages not installed:$PKG_NOT_INSTALLED"
+		echo -e "Please install not installed packages manually. Now terminating."
+		exit 1
+	fi
 }

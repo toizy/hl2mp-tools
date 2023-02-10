@@ -60,6 +60,6 @@ log_debug() {
 		MSG=$MSG"File: [ ${BYELLOW}$SRC_PATH${BGRAY} ] "
 		MSG=$MSG"Line: [ ${BYELLOW}${BASH_LINENO[$i-1]}${BGRAY} ]\n"
 	done
-	MSG=$MSG"\t${BGRAY}Messsage: [ ${BYELLOW}$*${BGRAY} ]${NORMAL}"
-	log $MSG
+	MSG=$MSG"\t${BGRAY}Message: [ ${BYELLOW}$*${BGRAY} ]${NORMAL}"
+	log "$MSG"
 }
