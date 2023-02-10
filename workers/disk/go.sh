@@ -114,11 +114,6 @@ function run_space_checks {
 	done
 
 	WORKER_RESULT=$WORKER_RESULT$MESSAGE
-
-	#log "Files count: ${BWHITE}$TOTAL_COUNT${NORMAL}, "\
-	#	"total size: ${BWHITE}$TOTAL_SIZE_H${NORMAL}, "\
-	#	"compressed size: ${BWHITE}$COMPRESSED_SIZE_H${NORMAL}"
-	echo $WORKER_RESULT
 }
 
 run_space_checks

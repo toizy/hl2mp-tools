@@ -88,24 +88,8 @@ do
 	(( COUNTER++ ))
 done
 
-# Include the settings file
-. $FILENAME
-
 #**************************************************************
 # EXECUTE WORKERS
 #**************************************************************
 
-RESULT=""
-I=0
-
-if [[ $WORKER_DEMO == "yes" ]]; then
-	. $SCRIPT_DIR/workers/demos/go.sh
-	RESULT=$RESULT'['$((++I))'] Demo packing done. '$WORKER_RESULT'%0A'
-fi
-
-if [[ $WORKER_LOGS == "yes" ]]; then
-	. $SCRIPT_DIR/workers/logs/go.sh
-	RESULT=$RESULT'['$((++I))'] Logs trimming and packing done.'$WORKER_RESULT'%0A'
-fi
-
-send_to_telegram "$RESULT"
+run_workers $FILENAME
