@@ -31,6 +31,7 @@ do
 			echo "Usage: numfmt [OPTION]"
 			echo "  -h, --help		print this text"
 			echo "  -c, --config		string separated by spaces. Defines the ID of the config to execute. If this parameter is omitted, the script will execute all available configs."
+			echo "  -c, --config		string separated by spaces. Defines the ID of the config to execute. If this parameter is omitted, the script will execute all available configs."
 			exit
 			;;
 		-s|--standalone)
