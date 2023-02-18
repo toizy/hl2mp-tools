@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Additional fond properties
 BOLD='\033[1m'
 DBOLD='\033[2m'

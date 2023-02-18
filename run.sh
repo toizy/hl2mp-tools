@@ -9,8 +9,8 @@
 # demos to a remote (web)server etc.
 #--------------------------------------------------------------
 
-SCRIPT_FULLNAME=$(readlink -e $0)
-SCRIPT_DIR=$(dirname $SCRIPT_FULLNAME)
+SCRIPT_FULLNAME=$(readlink -e "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT_FULLNAME")
 CONFIG_ARRAY=()
 
 # IS_ACTIVE indicates to all includes that we are in progress!
@@ -39,11 +39,11 @@ do
 			shift # past argument
 			;;
 		-c|--config)
-			CONFIG_IDS+=($2)
+			CONFIG_IDS+=("$2")
 			shift # past argument
 			shift # past value
 			;;
-		-*|--*)
+		-*)
 			echo "Unknown option $1"
 			exit 1
 			;;
@@ -57,26 +57,26 @@ done
 set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 
 # Includes
-source "$SCRIPT_DIR/helpers/functions.sh"
-source "$SCRIPT_DIR/helpers/log.sh"
-source "$SCRIPT_DIR/helpers/colors.sh"
+. "$SCRIPT_DIR/helpers/functions.sh"
+. "$SCRIPT_DIR/helpers/log.sh"
+. "$SCRIPT_DIR/helpers/colors.sh"
 
 # Check and install dependencies
 check_dependencies
 
 # Build a list of configs
-echo -e ${BWHITE}"Building a list of available configs"${NORMAL}
+echo -e "${BWHITE}Building a list of available configs${NORMAL}"
 CONFIG_ARRAY=()
-CONFIG_FILES_FOUND=$(find $SCRIPT_DIR/servers/ -maxdepth 1 -name "*.config" -print)
+CONFIG_FILES_FOUND=$(find "$SCRIPT_DIR/servers/" -maxdepth 1 -name "*.config" -print)
 COUNTER=0
 
 for I in $CONFIG_FILES_FOUND
 do
-	. $I
+	. "$I"
 	INLIST=true
 	# Is the config specified in the parameters?
 	if (( ${#CONFIG_IDS[@]} > 0 )); then
-		for X in $CONFIG_IDS
+		for X in "${CONFIG_IDS[@]}"
 		do
 			if [[ $X =~ $CONFIG_ID ]]; then
 				break
@@ -87,16 +87,16 @@ do
 	# if enabled and explicitly defined, then add to array.
 	if [[ $CONFIG_ENABLED == "yes" && $INLIST == true ]]; then
 		if [[ $SCRIPT_STANDALONE == false ]]; then
-			echo -e [$(( $COUNTER + 1 ))]${BWHITE}"\t"${BWHITE}$CONFIG_DESCRIPTION${NORMAL}
+			echo -e "[$(( COUNTER + 1 ))]${BWHITE}\t${BWHITE}$CONFIG_DESCRIPTION${NORMAL}"
 		fi
-		CONFIG_ARRAY+=($I)
+		CONFIG_ARRAY+=("$I")
 		(( COUNTER++ ))
 	fi
 done
 
 # No configs to execute. Exit.
 if (( ${#CONFIG_ARRAY[@]} == 0 )); then
-	log ${YELLOW}"No configs found. Terminating."${NORMAL}
+	log "${YELLOW}No configs found. Terminating.${NORMAL}"
 	exit 1
 fi
 
@@ -116,7 +116,7 @@ if [[ $SCRIPT_STANDALONE == false ]]; then
 			exit
 		fi
 		# Check input bounds
-		CHECK=$(check_input $ITEM "1" $COUNTER)
+		CHECK=$(check_input "$ITEM" "1" $COUNTER)
 		if [[ $CHECK == "" ]]; then
 			break
 		fi
@@ -129,14 +129,14 @@ if [[ $SCRIPT_STANDALONE == false ]]; then
 	if [[ -z $FILENAME ]]; then
 		log_debug "FILENAME var is empty!"
 	else
-		run_workers $FILENAME
+		run_workers "$FILENAME"
 	fi
 else
 	# Standalone mode (running by the systemd timer)
 	for (( I=0; I<${#CONFIG_ARRAY[@]}; I++ ))
 	do
-		. ${CONFIG_ARRAY[I]}
+		. "${CONFIG_ARRAY[I]}"
 		echo "Using config: ${CONFIG_ARRAY[I]} ($CONFIG_DESCRIPTION)"
-		run_workers ${CONFIG_ARRAY[I]}
+		run_workers "${CONFIG_ARRAY[I]}"
 	done
 fi

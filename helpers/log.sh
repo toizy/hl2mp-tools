@@ -18,12 +18,13 @@ if [[ -z $SCRIPT_DIR ]]; then
 fi
 
 if ! [[ -d $LOG_DIR ]]; then
-	mkdir -p $LOG_DIR
+	mkdir -p "$LOG_DIR"
 fi
 
 _log() {
-	if [[ $# > 0 && $LOG_ENABLED ]]; then
-		local TODAY=$(date +"%b-%d-%Y")
+	if [[ $# -gt 0 && $LOG_ENABLED ]]; then
+		local TODAY=""
+		TODAY=$(date +"%b-%d-%Y")
 		local LOG_FILENAME="$LOG_DIR/$TODAY.txt"
 		if $LOG_SEPARATED_FILES; then
 			LOG_FILENAME="$LOG_DIR/$TODAY.$0.txt"
@@ -35,18 +36,18 @@ _log() {
 		fi
 		shift
 		echo $ARG "$*">&1
-		echo $ARG "$DATETIME $*" | sed -e 's/\x1b\[[0-9;]*m//g' >> $LOG_FILENAME
+		echo $ARG "$DATETIME $*" | sed -e 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILENAME"
 	fi
 }
 
 # log normally
 log() {
-	_log "false" $*
+	_log "false" "$*"
 }
 
 # log with no caret return
 logn() {
-	_log "true" $*
+	_log "true" "$*"
 }
 
 # Traces call stack and shows text messages
