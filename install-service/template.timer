@@ -1,0 +1,9 @@
+[Unit]
+Description=%UNITNAME% timer unit
+
+[Timer]
+#For test purposes: OnCalendar=*:*:00
+OnCalendar=%FREQUENCY%
+
+[Install]
+WantedBy=timers.target

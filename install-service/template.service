@@ -1,0 +1,11 @@
+[Unit]
+Description=%UNITNAME% service unit
+Wants=network.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%WORKINGDIRECTORY%
+ExecStart=%SCRIPT_PATH% -s %ARGUMENTS%
+
+[Install]
+WantedBy=multi-user.target

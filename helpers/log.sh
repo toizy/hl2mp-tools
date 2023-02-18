@@ -34,7 +34,7 @@ _log() {
 			ARG="-en"
 		fi
 		shift
-		echo $ARG "$*"
+		echo $ARG "$*">&1
 		echo $ARG "$DATETIME $*" | sed -e 's/\x1b\[[0-9;]*m//g' >> $LOG_FILENAME
 	fi
 }

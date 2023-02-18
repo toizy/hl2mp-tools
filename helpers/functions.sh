@@ -17,6 +17,23 @@ function check_success_or_exit() {
 	fi
 }
 
+# Validation & range check
+# $1 - Input
+# $2 - Lower bound of the range
+# $3 - Higher bound of the range
+function check_input () {
+	if [[ $# > 0 && $# < 4 ]]; then
+		local INPUT=$1
+		local LOWER=$2
+		local HIGHER=$3
+		[[ $INPUT =~ ^[0-9]+$ ]] || { echo -en "${BRED}Enter a valid number${NORMAL}: ">/dev/tty; echo "1"; return; }
+		(( INPUT > 0 && INPUT <= HIGHER)) || { echo -en "${BRED}Enter a number in the range from $LOWER to $HIGHER${NORMAL}: ">/dev/tty; echo "2"; return; }
+		echo ""
+	else
+		echo "3";
+	fi
+}
+
 # Run enabled workers for a config.
 # Arguments:
 #	$1 - config filename

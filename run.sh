@@ -1,95 +1,141 @@
 #!/bin/bash
 
 #--------------------------------------------------------------
-# Description
-# ...
+# HL2MP-TOOLS
 #
+# Description:
+# This is a script that maintains sourc-based servers like hl2dm
+# or cstrike: deletes logs, archives demos, uploads backups and 
+# demos to a remote (web)server etc.
 #--------------------------------------------------------------
 
-SCRIPT_DIR=$(dirname $(readlink -e $0))
+SCRIPT_FULLNAME=$(readlink -e $0)
+SCRIPT_DIR=$(dirname $SCRIPT_FULLNAME)
+CONFIG_ARRAY=()
 
+# IS_ACTIVE indicates to all includes that we are in progress!
 IS_ACTIVE=true
 
+SCRIPT_STANDALONE=false
+
+#**************************************************************
+# PARSE COMMAND LINE ARGUMENTS
+#**************************************************************
+POSITIONAL_ARGS=()
+CONFIG_IDS=()
+
+while [[ $# -gt 0 ]]
+do
+	case $1 in
+		-h|--help)
+			echo "Usage: numfmt [OPTION]"
+			echo "  -h, --help		print this text"
+			echo "  -c, --config		string separated by spaces. Defines the ID of the config to execute. If this parameter is omitted, the script will execute all available configs."
+			exit
+			;;
+		-s|--standalone)
+			SCRIPT_STANDALONE=true
+			shift # past argument
+			;;
+		-c|--config)
+			CONFIG_IDS+=($2)
+			shift # past argument
+			shift # past value
+			;;
+		-*|--*)
+			echo "Unknown option $1"
+			exit 1
+			;;
+		*)
+			POSITIONAL_ARGS+=("$1") # save positional arg
+			shift # past argument
+			;;
+	esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+# Includes
 source "$SCRIPT_DIR/helpers/functions.sh"
 source "$SCRIPT_DIR/helpers/log.sh"
 source "$SCRIPT_DIR/helpers/colors.sh"
 
-#**************************************************************
-# ARE ALL DEPENCIES ALREADY INSTALLED OR NOT?
-#**************************************************************
+# Check and install dependencies
+check_dependencies
 
-# Checking depencies
-echo -e "${BOLD}Checking dependencies... ${NORMAL}"
+# Build a list of configs
+echo -e ${BWHITE}"Building a list of available configs"${NORMAL}
+CONFIG_ARRAY=()
+CONFIG_FILES_FOUND=$(find $SCRIPT_DIR/servers/ -maxdepth 1 -name "*.config" -print)
+COUNTER=0
 
-DEPENDENCIES=("zip")
-PKG_INSTALLED=""
-PKG_NOT_INSTALLED=""
-
-for i in "${DEPENDENCIES[@]}"; do
-	if [[ ! $(dpkg-query -s $i 2>/dev/null) ]]; then
-		echo -en "Installing package ${BYELLOW}${i}${NORMAL}... "
-		if [[ $(sudo apt-get install -q -y ${i}q &>/dev/null) ]]; then
-			echo -e "ok"
-			PKG_INSTALLED="$PKG_INSTALLED ${BYELLOW}${i}${NORMAL}"
-		else
-			echo -e "not installed"
-			PKG_NOT_INSTALLED="$PKG_NOT_INSTALLED ${BYELLOW}${i}${NORMAL}"
+for I in $CONFIG_FILES_FOUND
+do
+	. $I
+	INLIST=true
+	# Is the config specified in the parameters?
+	if (( ${#CONFIG_IDS[@]} > 0 )); then
+		for X in $CONFIG_IDS
+		do
+			if [[ $X =~ $CONFIG_ID ]]; then
+				break
+			fi
+		done
+		INLIST=false
+	fi
+	# if enabled and explicitly defined, then add to array.
+	if [[ $CONFIG_ENABLED == "yes" && $INLIST == true ]]; then
+		if [[ $SCRIPT_STANDALONE == false ]]; then
+			echo -e [$(( $COUNTER + 1 ))]${BWHITE}"\t"${BWHITE}$CONFIG_DESCRIPTION${NORMAL}
 		fi
+		CONFIG_ARRAY+=($I)
+		(( COUNTER++ ))
 	fi
 done
 
-if [[ ! -z $PKG_INSTALLED ]]; then
-	echo -e "Following packages has been installed:$PKG_INSTALLED"
-fi
-
-if [[ ! -z $PKG_NOT_INSTALLED ]]; then
-	echo -e "Following packages not installed:$PKG_NOT_INSTALLED"
-	echo -e "Please install not installed packages manually. Now terminating."
+# No configs to execute. Exit.
+if (( ${#CONFIG_ARRAY[@]} == 0 )); then
+	log ${YELLOW}"No configs found. Terminating."${NORMAL}
 	exit 1
 fi
 
-#**************************************************************
-# DISPLAY USER MENU
-#**************************************************************
+if [[ $SCRIPT_STANDALONE == false ]]; then
+	# User controlled mode
+	echo -en "Select a config to execute (Or type 'cfg' to install/uninstall service): "
+	# Read user input
+	while :; do
+		read -r ITEM
 
-echo -e "Select a config to execute:"
+		if [[ ${ITEM,,} == "cfg" ]]; then
+			if [[ "$EUID" -ne 0 ]]; then
+				echo -e "${YELLOW}To create a service, please run me as root${NORMAL}"
+			else
+				. install-service/install-service.sh
+			fi
+			exit
+		fi
+		# Check input bounds
+		CHECK=$(check_input $ITEM "1" $COUNTER)
+		if [[ $CHECK == "" ]]; then
+			break
+		fi
+	done
 
-ARRAY=$(find $SCRIPT_DIR/servers/ -maxdepth 1 -name "*.config" -print)
-COUNTER=0
+	(( ITEM-- ))
+	FILENAME=${CONFIG_ARRAY[ITEM]}
 
-for i in $ARRAY
-do
-	. $i
-	echo -e [$(( $COUNTER + 1 ))]${BWHITE}"\t"${BWHITE}$CONFIG_DESCRIPTION${NORMAL}
-	(( COUNTER++ ))
-done
-
-while :; do
-	echo -n "Enter config ID: "
-	read -r ITEM
-
-	# Validation & range check
-	[[ $ITEM =~ ^[0-9]+$ ]] || { echo -e "${BRED}Enter a valid number${NORMAL}"; continue; }
-	(( ITEM > 0 && ITEM <= $COUNTER)) || { echo -e "${BRED}Enter a number in the range from 0 to $COUNTER${NORMAL}"; continue; }
-
-	break
-done
-
-(( ITEM-- ))
-COUNTER=0
-FILENAME=""
-
-for i in $ARRAY
-do
-	if [[ $COUNTER == $ITEM ]]; then
-		FILENAME=$i
-		break
+	# Execute workers
+	if [[ -z $FILENAME ]]; then
+		log_debug "FILENAME var is empty!"
+	else
+		run_workers $FILENAME
 	fi
-	(( COUNTER++ ))
-done
-
-#**************************************************************
-# EXECUTE WORKERS
-#**************************************************************
-
-run_workers $FILENAME
+else
+	# Standalone mode (running by the systemd timer)
+	for (( I=0; I<${#CONFIG_ARRAY[@]}; I++ ))
+	do
+		. ${CONFIG_ARRAY[I]}
+		echo "Using config: ${CONFIG_ARRAY[I]} ($CONFIG_DESCRIPTION)"
+		run_workers ${CONFIG_ARRAY[I]}
+	done
+fi
