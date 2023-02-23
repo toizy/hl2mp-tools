@@ -11,3 +11,7 @@ This is a set of BASH scripts for cleaning Valve Source servers, such as Half-Li
 In the `servers` directory you can see the `template.config` file, which is a template for server settings. Copy it and delete the template, or rename it to `something.config` and fill down variables. After `run.sh` launched without parameters, you will see a menu to select a configuration that you can launch. You can also type `cfg` instead of selecting a menu item to run the systemd timer setup script (you will need to answer a few questions). Also here you can change the timer or disable it.
 
 README and scripts in the process of modification and will be updated (I hope)...
+
+## Systemd units
+
+The `install-service.sh` script uses a systemd timer to periodically start a service unit that runs `run.sh` in stanalone mode. Systemd units are located in the ~/.config/systemd/user/ directory and does not require sudo for configure and run.
