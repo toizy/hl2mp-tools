@@ -31,7 +31,7 @@ do
 			echo "Usage: numfmt [OPTION]"
 			echo "  -h, --help		print this text"
 			echo "  -c, --config		string separated by spaces. Defines the ID of the config to execute. If this parameter is omitted, the script will execute all available configs."
-			echo "  -c, --config		string separated by spaces. Defines the ID of the config to execute. If this parameter is omitted, the script will execute all available configs."
+			echo "  -s, --standalone	run the script in standalone mode. It will process all enabled configs."
 			exit
 			;;
 		-s|--standalone)
@@ -108,11 +108,11 @@ if [[ $SCRIPT_STANDALONE == false ]]; then
 		read -r ITEM
 
 		if [[ ${ITEM,,} == "cfg" ]]; then
-			if [[ "$EUID" -ne 0 ]]; then
-				echo -e "${YELLOW}To create a service, please run me as root${NORMAL}"
-			else
+			#if [[ "$EUID" -ne 0 ]]; then
+			#	echo -e "${YELLOW}To create a service, please run me as root${NORMAL}"
+			#else
 				. install-service/install-service.sh
-			fi
+			#fi
 			exit
 		fi
 		# Check input bounds
@@ -136,7 +136,7 @@ else
 	for (( I=0; I<${#CONFIG_ARRAY[@]}; I++ ))
 	do
 		. "${CONFIG_ARRAY[I]}"
-		echo "Using config: ${CONFIG_ARRAY[I]} ($CONFIG_DESCRIPTION)"
+		echo "Using config: ${config_array[I]} ($CONFIG_DESCRIPTION)"
 		run_workers "${CONFIG_ARRAY[I]}"
 	done
 fi

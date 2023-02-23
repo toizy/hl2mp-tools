@@ -4,20 +4,14 @@ if [[ -z $IS_ACTIVE ]]; then
 	return
 fi
 
-INSTALL_PATH="/etc/systemd/system/"
+INSTALL_PATH="$HOME/.config/systemd/user/"
 UNITNAME="hl2mp-tools"
 SERVICE_NAME="$INSTALL_PATH$UNITNAME.service"
 TIMER_NAME="$INSTALL_PATH$UNITNAME.timer"
 ARGUMENTS=""
 WORKINGDIRECTORY="$SCRIPT_DIR"
-USER=""
-GROUP=""
+USER=$(whoami)
 FREQUENCY=""
-
-if [[ ! -d $INSTALL_PATH ]]; then
-	log_debug "Path $INSTALL_PATH does not exists. All the following steps will not be completed."
-	return 1
-fi
 
 function ExecutionFrequency() {
 	echo -e "${BGRAY}--- Frequency of execution ---${NORMAL}"
@@ -59,22 +53,6 @@ function BuildArguments() {
 	done
 }
 
-function BuildUserAndGroup() {
-	echo -e "${BGRAY}--- User and group ---${NORMAL}"
-	while :; do
-		echo -n "Enter user and group like admin:main (or leave it empty): "
-		read -r USERANDGROUP
-		USER=${USERANDGROUP%%:*}
-		GROUP=${USERANDGROUP##*:}
-		echo -n "Is this correct? USER: '$USER' GROUP: '$GROUP'"
-		read -r ANSWER
-		ANSWER=${ANSWER^^}
-		if [[ $ANSWER == "Y" || $ANSWER == "" ]]; then
-			break
-		fi
-	done
-}
-
 function InstallService() {
 	echo -e "${BGRAY}--- Installing the service ---${NORMAL}"
 	#TODO more echo messages!
@@ -87,76 +65,88 @@ function InstallService() {
 	# Replace placeholders in the local units
 	SCRIPT_FULLNAME_FIXED="${SCRIPT_FULLNAME//\//\\/}"
 	WORKINGDIRECTORY_FIXED="${WORKINGDIRECTORY//\//\\/}"
-	echo $SCRIPT_FULLNAME - $SCRIPT_FULLNAME_FIXED
-	echo $WORKINGDIRECTORY - $WORKINGDIRECTORY_FIXED
 	sed -i "s/%SCRIPT_PATH%/$SCRIPT_FULLNAME_FIXED/g" "$SERVICE_TARGET"
 	sed -i "s/%ARGUMENTS%/$ARGUMENTS/g" "$SERVICE_TARGET"
 	sed -i "s/%WORKINGDIRECTORY%/$WORKINGDIRECTORY_FIXED/g" "$SERVICE_TARGET"
 	sed -i "s/%UNITNAME%/$UNITNAME/g" "$SERVICE_TARGET"
 	sed -i "s/%FREQUENCY%/$FREQUENCY/g" "$TIMER_TARGET"
 	sed -i "s/%UNITNAME%/$UNITNAME/g" "$TIMER_TARGET"
-	# Move units to /etc/systemd/system/ directory
+	# Move units to ~/.config/systemd/user/ directory
 	echo -e "Moving unit files:"
 	echo -e "  '$SERVICE_TARGET' > '$SERVICE_NAME'"
 	if ! mv "$SERVICE_TARGET" "$SERVICE_NAME"; then
-		echo -e "${RED}An error has occured while making symlink to $SERVICE_NAME from $SERVICE_TARGET${NORMAL}"
+		echo -e "${RED}An error has occured while copying $SERVICE_TARGET to $SERVICE_NAME${NORMAL}"
 	fi
 	echo -e "  '$TIMER_TARGET' > '$TIMER_NAME'"
 	if ! mv "$TIMER_TARGET" "$TIMER_NAME"; then
-		echo -e "${RED}An error has occured while making symlink to $TIMER_NAME from $TIMER_TARGET${NORMAL}"
+		echo -e "${RED}An error has occured while copying $TIMER_TARGET to $TIMER_NAME${NORMAL}"
 	fi
 	# Start timer
-	echo -e "Starting $UNITNAME.timer"
-	if ! systemctl start "$UNITNAME.timer"; then
-		echo -e "${RED}An error has occured while starting the timer${NORMAL}"
+	echo -en "Starting $UNITNAME.timer... "
+	if ! systemctl --user start "$UNITNAME.timer"; then
+		echo -e "\n${RED}An error has occured while starting the timer${NORMAL}"
+	else
+		echo "Ok"
 	fi
 	# Enable timer
-	echo -e "Enabling $UNITNAME.timer"
-	if ! systemctl enable "$UNITNAME.timer"; then
-		echo -e "${RED}An error has occured while enablind the timer${NORMAL}"
+	echo -en "Enabling $UNITNAME.timer... "
+	if ! systemctl --user enable "$UNITNAME.timer"; then
+		echo -e "\n${RED}An error has occured while enablind the timer${NORMAL}"
 	fi
 	# Reload daemons
-	echo -e "Reloading daemons"
-	if ! systemctl daemon-reload; then
-		echo -e "${RED}An error has occured while reloading daemons${NORMAL}"
+	echo -en "Reloading daemons... "
+	if ! systemctl --user daemon-reload; then
+		echo -e "\n${RED}An error has occured while reloading daemons${NORMAL}"
+	else
+		echo "Ok"
 	fi
 }>&1
 
 function RemoveService() {
 	echo -e "${BGRAY}--- Removing the service ---${NORMAL}"
 	# Stop timer
-	echo "Stopping the timer"
-	if ! systemctl stop "$UNITNAME.timer"; then
-		echo -e "${RED}An error has occured while stopping the timer${NORMAL}"
+	echo -n "Stopping the timer... "
+	if ! systemctl --user stop "$UNITNAME.timer"; then
+		echo -e "\n${RED}An error has occured while stopping the timer${NORMAL}"
+	else
+		echo "Ok"
 	fi
 	# Disable timer
-	echo "Disabling the timer"
-	if ! systemctl disable "$UNITNAME.timer"; then
-		echo -e "${RED}An error has occured while disabling the timer${NORMAL}"
+	echo -n "Disabling the timer... "
+	if ! systemctl --user disable "$UNITNAME.timer"; then
+		echo -e "\n${RED}An error has occured while disabling the timer${NORMAL}"
 	fi
 	# Stop service
-	echo "Stopping the service"
-	if ! systemctl stop "$UNITNAME.service"; then
-		echo -e "${RED}An error has occured while stopping the service${NORMAL}"
+	echo -n "Stopping the service... "
+	if ! systemctl --user stop "$UNITNAME.service"; then
+		echo -e "\n${RED}An error has occured while stopping the service${NORMAL}"
+	else
+		echo "Ok"
 	fi
 	# Disable service
-	echo "Disabling the service"
-	
-	if ! systemctl disable "$UNITNAME.service"; then
-		echo -e "${RED}An error has occured while disabling the service${NORMAL}"
+	echo -n "Disabling the service... "
+	if ! systemctl --user disable "$UNITNAME.service"; then
+		echo -e "\n${RED}An error has occured while disabling the service${NORMAL}"
+	else
+		echo "Ok"
 	fi
 	# Reload daemons
-	echo "Reloadng daemons"
-	if ! systemctl daemon-reload; then
-		echo -e "${RED}An error has occured while reloading daemons${NORMAL}"
+	echo -n "Reloadng daemons... "
+	if ! systemctl --user daemon-reload; then
+		echo -e "\n${RED}An error has occured while reloading daemons${NORMAL}"
+	else
+		echo "Ok"
 	fi
 	# Delete units
 	echo "Deleting unit files:"
 	if [[ -f "$SERVICE_NAME" ]]; then
 		echo "  $SERVICE_NAME"
+
 		if ! rm -f "$SERVICE_NAME"; then
 			echo -e "${RED}An error has occured while deleting $SERVICE_NAME${NORMAL}"
 		fi
+	else
+		echo "  $SERVICE_NAME - does not exists."
 	fi
 	if [[ -f "$TIMER_NAME" ]]; then
 		echo "  $TIMER_NAME"
@@ -164,6 +154,8 @@ function RemoveService() {
 		if ! rm -f "$TIMER_NAME"; then
 			echo -e "${RED}An error has occured while deleting $TIMER_NAME${NORMAL}"
 		fi
+	else
+		echo "  $TIMER_NAME - does not exists."
 	fi
 }>&1
 
@@ -175,7 +167,7 @@ function GetServiceStatus() {
 	if [[ ! -f $TIMER_NAME ]]; then
 		RESULT=$RESULT"2"
 	fi
-	OUTPUT=$(systemctl status "$UNITNAME.timer")
+	OUTPUT=$(systemctl --user status "$UNITNAME.timer" 2>/dev/null)
 	if [[ ! $OUTPUT =~ " active " ]]; then
 		RESULT=$RESULT"3"
 	fi
@@ -185,9 +177,37 @@ function GetServiceStatus() {
 	echo $RESULT
 }
 
+# Check if ~/.config/systemd/user/ directory exists
+echo -n "Checking the existence of the user's systemd service directory... "
+if [[ ! -d $INSTALL_PATH ]]; then
+	echo -en "\nDoes not exists, creating... "
+	if ! mkdir -p" $INSTALL_PATH"; then
+		echo -e "\n${RED}An error has occured while creating the directory $INSTALL_PATH ${NORMAL}. Terminating."
+		return 1
+	fi
+	echo "Done."
+else
+	echo "Ok."
+fi
+
+# Check linger status for the user
+echo "Current user: $USER"
+echo -n "Lingering status for the user: "
+LINGERING=$(ls /var/lib/systemd/linger)
+if [[ $LINGERING =~ $USER ]]; then
+	echo "Enabled"
+else
+	echo "Disabled"
+	echo -n "Enabling user lingering for the user... "
+	if ! loginctl enable-linger "$USER"; then
+		echo -e "\n${RED}An error has occured while enabling lingering for the user $USER ${NORMAL}. Terminating."
+		return 1
+	fi
+	echo "Done."
+fi
+
 # Get service and timer status
 TIMER_STATUS=$(GetServiceStatus)
-echo "$TIMER_STATUS"
 echo -e "${BGRAY}--- Current status of hl2mp-tools timer ---${NORMAL}"
 echo -en "Service unit: "
 if [[ $TIMER_STATUS =~ "1" ]]; then
@@ -258,7 +278,6 @@ done
 
 if [[ ${MENU_ITEMS[$ITEM]} == "$ITEM_INSTALL" ]]; then
 	BuildArguments
-	BuildUserAndGroup
 	ExecutionFrequency
 	InstallService
 elif [[ ${MENU_ITEMS[$ITEM]} == "$ITEM_REMOVE" ]]; then
@@ -266,7 +285,6 @@ elif [[ ${MENU_ITEMS[$ITEM]} == "$ITEM_REMOVE" ]]; then
 elif [[ ${MENU_ITEMS[$ITEM]} == "$ITEM_REINSTALL" ]]; then
 	RemoveService
 	BuildArguments
-	BuildUserAndGroup
 	ExecutionFrequency
 	InstallService
 fi
