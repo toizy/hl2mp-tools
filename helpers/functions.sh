@@ -52,6 +52,10 @@ function run_workers() {
 		. "$SCRIPT_DIR/workers/logs/go.sh"
 		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Logs trimming and packing is done. '$WORKER_RESULT'%0A'
 	fi
+	if [[ $WORKER_LOGS_SM == "yes" ]]; then
+		. "$SCRIPT_DIR/workers/sourcemod-logs/go.sh"
+		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Sourcemod logs packing is done. '$WORKER_RESULT'%0A'
+	fi
 	if [[ $WORKER_DISK == "yes" ]]; then
 		. "$SCRIPT_DIR/workers/disk/go.sh"
 		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Disk space checks are done. '$WORKER_RESULT'%0A'
