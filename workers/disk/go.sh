@@ -117,3 +117,5 @@ function run_space_checks {
 }
 
 run_space_checks
+
+log "Disk space checks are done."

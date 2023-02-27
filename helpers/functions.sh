@@ -44,19 +44,23 @@ function run_workers() {
 	. "$1"
 	local WORKERS_RESULT=""
 	local STEP=0
-	if [[ $WORKER_DEMO == "yes" ]]; then
+	if CheckYesNoFlag "$WORKER_DEMO"; then
 		. "$SCRIPT_DIR/workers/demos/go.sh"
 		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Demo packing is done. '$WORKER_RESULT'%0A'
 	fi
-	if [[ $WORKER_LOGS == "yes" ]]; then
+	if CheckYesNoFlag "$WORKER_LOGS"; then
 		. "$SCRIPT_DIR/workers/logs/go.sh"
 		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Logs trimming and packing is done. '$WORKER_RESULT'%0A'
 	fi
-	if [[ $WORKER_LOGS_SM == "yes" ]]; then
+	if CheckYesNoFlag "$WORKER_LOGS_SM"; then
 		. "$SCRIPT_DIR/workers/sourcemod-logs/go.sh"
 		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Sourcemod logs packing is done. '$WORKER_RESULT'%0A'
 	fi
-	if [[ $WORKER_DISK == "yes" ]]; then
+	if CheckYesNoFlag "$WORKER_SYNC"; then
+		. "$SCRIPT_DIR/workers/rsync/go.sh"
+		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Syncing is done. '$WORKER_RESULT'%0A'
+	fi
+	if CheckYesNoFlag "$WORKER_DISK"; then
 		. "$SCRIPT_DIR/workers/disk/go.sh"
 		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Disk space checks are done. '$WORKER_RESULT'%0A'
 	fi
@@ -212,4 +216,18 @@ function check_dependencies()
 		echo -e "Please install not installed packages manually. Now terminating."
 		exit 1
 	fi
+}
+
+function CheckYesNoFlag() {
+	local FLAG="${1,,}"
+	case $FLAG in
+		"yes"|"y"|"1"|"+"|"true"|"enable"|"enabled"|"active"|"activated")
+			return 0
+			#echo "0"
+		;;
+		*)
+			return 1
+			#echo "1"
+		;;
+	esac
 }

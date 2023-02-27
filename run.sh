@@ -85,12 +85,14 @@ do
 		INLIST=false
 	fi
 	# if enabled and explicitly defined, then add to array.
-	if [[ $CONFIG_ENABLED == "yes" && $INLIST == true ]]; then
-		if [[ $SCRIPT_STANDALONE == false ]]; then
-			echo -e "[$(( COUNTER + 1 ))]${BWHITE}\t${BWHITE}$CONFIG_DESCRIPTION${NORMAL}"
+	if CheckYesNoFlag "$CONFIG_ENABLED"; then
+		if [[ $INLIST == true ]]; then
+			if [[ $SCRIPT_STANDALONE == false ]]; then
+				echo -e "[$(( COUNTER + 1 ))]${BWHITE}\t${BWHITE}$CONFIG_DESCRIPTION${NORMAL}"
+			fi
+			CONFIG_ARRAY+=("$I")
+			(( COUNTER++ ))
 		fi
-		CONFIG_ARRAY+=("$I")
-		(( COUNTER++ ))
 	fi
 done
 
