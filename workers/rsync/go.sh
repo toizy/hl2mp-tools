@@ -9,7 +9,7 @@ WORKER_RESULT=""
 log "Starting rsync syncronization job."
 
 function RSyncLocalToRemote() {
-	RSYNC_CMD="-"
+	local RSYNC_CMD="-"
 
 	if CheckYesNoFlag $RSYNC_PROGRESS; then
 		RSYNC_CMD=$RSYNC_CMD'P'
@@ -33,7 +33,7 @@ function RSyncLocalToRemote() {
 		RSYNC_CMD=$RSYNC_CMD' --remove-source-files'
 	fi
 	if [[ -n $RSYNC_CUSTOM_RULES ]]; then
-		RSYNC_CMD=$RSYNC_CMD $RSYNC_CUSTOM_RULES
+		RSYNC_CMD=$RSYNC_CMD' '$RSYNC_CUSTOM_RULES
 	fi
 
 	if [[ $RSYNC_CMD == "-" ]]; then
