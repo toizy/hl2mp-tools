@@ -110,11 +110,7 @@ if [[ $SCRIPT_STANDALONE == false ]]; then
 		read -r ITEM
 
 		if [[ ${ITEM,,} == "cfg" ]]; then
-			#if [[ "$EUID" -ne 0 ]]; then
-			#	echo -e "${YELLOW}To create a service, please run me as root${NORMAL}"
-			#else
-				. install-service/install-service.sh
-			#fi
+			. install-service/install-service.sh
 			exit
 		fi
 		# Check input bounds

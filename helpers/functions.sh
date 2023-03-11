@@ -1,5 +1,27 @@
 #!/bin/bash
 
+CURSORPOS=()
+
+# ------------------------------------------------------
+# Converts bytes to a string in a human-readable form
+#
+# $1 - A value in bytes
+# ------------------------------------------------------
+function BytesToString()
+{
+	echo $(numfmt --to iec --format %8.2f $1)
+}
+
+# ------------------------------------------------------
+# Converts string to bytes
+#
+# $1 - A value in string
+# ------------------------------------------------------
+function StringToBytes()
+{
+	echo $(numfmt --from=iec $1)
+}
+
 # Checks first argument for error. If it's not equal 0, log it and terminate
 # Arguments:
 # $1 - Error code given by $?:
@@ -64,6 +86,10 @@ function run_workers() {
 		. "$SCRIPT_DIR/workers/disk/go.sh"
 		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Disk space checks are done. '$WORKER_RESULT'%0A'
 	fi
+	if CheckYesNoFlag "$WORKER_YANDEX_DISK"; then
+		. "$SCRIPT_DIR/workers/yandex-disk/go.sh"
+		WORKERS_RESULT=$WORKERS_RESULT'['$((++STEP))'] Yandex.Disk task is done. '$WORKER_RESULT'%0A'
+	fi
 	send_to_telegram "$WORKERS_RESULT"
 }
 
@@ -84,7 +110,7 @@ function do_zip() {
 	if [[ $ZIP_USE_NICE ]]; then
 		NICE_CMD="nice -n $ZIP_NICE_VALUE"
 	fi
-
+	# TODO Avoid eval
 	log "$(eval "$NICE_CMD" zip "$ZIP_COMPRESSION_RATE" "$FILE_OUT" "$FILE_IN")"
 }
 
@@ -147,10 +173,10 @@ function list_and_pack_files() {
 
 	# Update worker result
 	local TOTAL_SIZE_H=""
-	TOTAL_SIZE_H=$(numfmt --to iec --format %8.2f "$TOTAL_SIZE")
+	TOTAL_SIZE_H=$(BytesToString "$TOTAL_SIZE")
 
 	local COMPRESSED_SIZE_H=""
-	COMPRESSED_SIZE_H=$(numfmt --to iec --format %8.2f $COMPRESSED_SIZE)
+	COMPRESSED_SIZE_H=$(BytesToString $COMPRESSED_SIZE)
 
 	WORKER_RESULT="$TOTAL_COUNT files in total. Total size:$TOTAL_SIZE_H. Compressed size:$COMPRESSED_SIZE_H. $NOT_REMOVED_COUNT file(s) can not be removed."
 
@@ -230,4 +256,23 @@ function CheckYesNoFlag() {
 			#echo "1"
 		;;
 	esac
+}
+
+function GetCursorPosition()
+{
+    local POS=''
+    local TMP=''
+    exec < /dev/tty
+    TMP=$(stty -g)
+    stty raw -echo min 0
+    echo -en "\033[6n" > /dev/tty
+    IFS=';' read -r -d R -a POS
+    stty "$TMP"
+    CURSORPOS[0]=$((${POS[0]:2} - 2))
+    CURSORPOS[1]=$((POS[1] - 1))
+}
+
+function RestoreCursorPos()
+{
+	tput cup "${CURSORPOS[0]}" "${CURSORPOS[1]}"
 }

@@ -100,9 +100,9 @@ function run_space_checks {
 			continue
 		fi
 
-		AVAILABLE=$(numfmt --to iec --format %8.2f "${SPACE_AVAIL[I]}")
-		USED=$(numfmt --to iec --format %8.2f "${SPACE_USED[I]}")
-		TOTAL=$(numfmt --to iec --format %8.2f "${SPACE_TOTAL[I]}")
+		AVAILABLE=$(BytesToString "${SPACE_AVAIL[I]}")
+		USED=$(BytesToString "${SPACE_USED[I]}")
+		TOTAL=$(BytesToString "${SPACE_TOTAL[I]}")
 
 		if (( SPACE_AVAIL[I] < SPACE_THRESHOLD[I] )); then
 			MESSAGE=$MESSAGE"<b>Low space:</b>"
