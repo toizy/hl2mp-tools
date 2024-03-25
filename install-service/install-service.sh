@@ -4,7 +4,12 @@ if [[ -z $IS_ACTIVE ]]; then
 	return
 fi
 
-INSTALL_PATH="$HOME/.config/systemd/user/"
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run on behalf of the superuser." 
+    exit 1
+fi
+
+INSTALL_PATH="/etc/systemd/system/"
 UNITNAME="hl2mp-tools"
 SERVICE_NAME="$INSTALL_PATH$UNITNAME.service"
 TIMER_NAME="$INSTALL_PATH$UNITNAME.timer"
@@ -54,109 +59,109 @@ function BuildArguments() {
 }
 
 function InstallService() {
-	echo -e "${BGRAY}--- Installing the service ---${NORMAL}"
-	#TODO more echo messages!
-	# Local unit names
-	local SERVICE_TARGET="$SCRIPT_DIR/install-service/systemd-service"
-	local TIMER_TARGET="$SCRIPT_DIR/install-service/systemd-timer"
-	# Copy templates to local units
-	cp "$SCRIPT_DIR/install-service/template.service" "$SERVICE_TARGET"
-	cp "$SCRIPT_DIR/install-service/template.timer" "$TIMER_TARGET"
-	# Replace placeholders in the local units
-	SCRIPT_FULLNAME_FIXED="${SCRIPT_FULLNAME//\//\\/}"
-	WORKINGDIRECTORY_FIXED="${WORKINGDIRECTORY//\//\\/}"
-	sed -i "s/%SCRIPT_PATH%/$SCRIPT_FULLNAME_FIXED/g" "$SERVICE_TARGET"
-	sed -i "s/%ARGUMENTS%/$ARGUMENTS/g" "$SERVICE_TARGET"
-	sed -i "s/%WORKINGDIRECTORY%/$WORKINGDIRECTORY_FIXED/g" "$SERVICE_TARGET"
-	sed -i "s/%UNITNAME%/$UNITNAME/g" "$SERVICE_TARGET"
-	sed -i "s/%FREQUENCY%/$FREQUENCY/g" "$TIMER_TARGET"
-	sed -i "s/%UNITNAME%/$UNITNAME/g" "$TIMER_TARGET"
-	# Move units to ~/.config/systemd/user/ directory
-	echo -e "Moving unit files:"
-	echo -e "  '$SERVICE_TARGET' > '$SERVICE_NAME'"
-	if ! mv "$SERVICE_TARGET" "$SERVICE_NAME"; then
-		echo -e "${RED}An error has occured while copying $SERVICE_TARGET to $SERVICE_NAME${NORMAL}"
-	fi
-	echo -e "  '$TIMER_TARGET' > '$TIMER_NAME'"
-	if ! mv "$TIMER_TARGET" "$TIMER_NAME"; then
-		echo -e "${RED}An error has occured while copying $TIMER_TARGET to $TIMER_NAME${NORMAL}"
-	fi
-	# Start timer
-	echo -en "Starting $UNITNAME.timer... "
-	if ! systemctl --user start "$UNITNAME.timer"; then
-		echo -e "\n${RED}An error has occured while starting the timer${NORMAL}"
-	else
-		echo "Ok"
-	fi
-	# Enable timer
-	echo -en "Enabling $UNITNAME.timer... "
-	if ! systemctl --user enable "$UNITNAME.timer"; then
-		echo -e "\n${RED}An error has occured while enablind the timer${NORMAL}"
-	fi
-	# Reload daemons
-	echo -en "Reloading daemons... "
-	if ! systemctl --user daemon-reload; then
-		echo -e "\n${RED}An error has occured while reloading daemons${NORMAL}"
-	else
-		echo "Ok"
-	fi
+    echo -e "${BGRAY}--- Installing the service ---${NORMAL}"
+    #TODO more echo messages!
+    # Local unit names
+    local SERVICE_TARGET="$SCRIPT_DIR/install-service/systemd-service"
+    local TIMER_TARGET="$SCRIPT_DIR/install-service/systemd-timer"
+    local SYSTEM_SERVICE_PATH="/etc/systemd/system/$UNITNAME.service"
+    local SYSTEM_TIMER_PATH="/etc/systemd/system/$UNITNAME.timer"
+    # Copy templates to system units directory
+    sudo cp "$SCRIPT_DIR/install-service/template.service" "$SERVICE_TARGET"
+    sudo cp "$SCRIPT_DIR/install-service/template.timer" "$TIMER_TARGET"
+    # Replace placeholders in the system units
+    SCRIPT_FULLNAME_FIXED="${SCRIPT_FULLNAME//\//\\/}"
+    WORKINGDIRECTORY_FIXED="${WORKINGDIRECTORY//\//\\/}"
+    sudo sed -i "s/%SCRIPT_PATH%/$SCRIPT_FULLNAME_FIXED/g" "$SERVICE_TARGET"
+    sudo sed -i "s/%ARGUMENTS%/$ARGUMENTS/g" "$SERVICE_TARGET"
+    sudo sed -i "s/%WORKINGDIRECTORY%/$WORKINGDIRECTORY_FIXED/g" "$SERVICE_TARGET"
+    sudo sed -i "s/%UNITNAME%/$UNITNAME/g" "$SERVICE_TARGET"
+    sudo sed -i "s/%FREQUENCY%/$FREQUENCY/g" "$TIMER_TARGET"
+    sudo sed -i "s/%UNITNAME%/$UNITNAME/g" "$TIMER_TARGET"
+    # Move units to system directory
+    echo -e "Moving unit files:"
+    echo -e "  '$SERVICE_TARGET' > '$SYSTEM_SERVICE_PATH'"
+    if ! sudo mv "$SERVICE_TARGET" "$SYSTEM_SERVICE_PATH"; then
+        echo -e "${RED}An error has occurred while copying $SERVICE_TARGET to $SYSTEM_SERVICE_PATH${NORMAL}"
+    fi
+    echo -e "  '$TIMER_TARGET' > '$SYSTEM_TIMER_PATH'"
+    if ! sudo mv "$TIMER_TARGET" "$SYSTEM_TIMER_PATH"; then
+        echo -e "${RED}An error has occurred while copying $TIMER_TARGET to $SYSTEM_TIMER_PATH${NORMAL}"
+    fi
+    # Start timer
+    echo -en "Starting $UNITNAME.timer... "
+    if ! sudo systemctl start "$UNITNAME.timer"; then
+        echo -e "\n${RED}An error has occurred while starting the timer${NORMAL}"
+    else
+        echo "Ok"
+    fi
+    # Enable timer
+    echo -en "Enabling $UNITNAME.timer... "
+    if ! sudo systemctl enable "$UNITNAME.timer"; then
+        echo -e "\n${RED}An error has occurred while enabling the timer${NORMAL}"
+    fi
+    # Reload daemons
+    echo -en "Reloading daemons... "
+    if ! sudo systemctl daemon-reload; then
+        echo -e "\n${RED}An error has occurred while reloading daemons${NORMAL}"
+    else
+        echo "Ok"
+    fi
 }>&1
 
 function RemoveService() {
-	echo -e "${BGRAY}--- Removing the service ---${NORMAL}"
-	# Stop timer
-	echo -n "Stopping the timer... "
-	if ! systemctl --user stop "$UNITNAME.timer"; then
-		echo -e "\n${RED}An error has occured while stopping the timer${NORMAL}"
-	else
-		echo "Ok"
-	fi
-	# Disable timer
-	echo -n "Disabling the timer... "
-	if ! systemctl --user disable "$UNITNAME.timer"; then
-		echo -e "\n${RED}An error has occured while disabling the timer${NORMAL}"
-	fi
-	# Stop service
-	echo -n "Stopping the service... "
-	if ! systemctl --user stop "$UNITNAME.service"; then
-		echo -e "\n${RED}An error has occured while stopping the service${NORMAL}"
-	else
-		echo "Ok"
-	fi
-	# Disable service
-	echo -n "Disabling the service... "
-	if ! systemctl --user disable "$UNITNAME.service"; then
-		echo -e "\n${RED}An error has occured while disabling the service${NORMAL}"
-	else
-		echo "Ok"
-	fi
-	# Reload daemons
-	echo -n "Reloadng daemons... "
-	if ! systemctl --user daemon-reload; then
-		echo -e "\n${RED}An error has occured while reloading daemons${NORMAL}"
-	else
-		echo "Ok"
-	fi
-	# Delete units
-	echo "Deleting unit files:"
-	if [[ -f "$SERVICE_NAME" ]]; then
-		echo "  $SERVICE_NAME"
-
-		if ! rm -f "$SERVICE_NAME"; then
-			echo -e "${RED}An error has occured while deleting $SERVICE_NAME${NORMAL}"
-		fi
-	else
-		echo "  $SERVICE_NAME - does not exists."
-	fi
-	if [[ -f "$TIMER_NAME" ]]; then
-		echo "  $TIMER_NAME"
-		
-		if ! rm -f "$TIMER_NAME"; then
-			echo -e "${RED}An error has occured while deleting $TIMER_NAME${NORMAL}"
-		fi
-	else
-		echo "  $TIMER_NAME - does not exists."
-	fi
+    echo -e "${BGRAY}--- Removing the service ---${NORMAL}"
+    # Stop timer
+    echo -n "Stopping the timer... "
+    if ! sudo systemctl stop "$UNITNAME.timer"; then
+        echo -e "\n${RED}An error has occurred while stopping the timer${NORMAL}"
+    else
+        echo "Ok"
+    fi
+    # Disable timer
+    echo -n "Disabling the timer... "
+    if ! sudo systemctl disable "$UNITNAME.timer"; then
+        echo -e "\n${RED}An error has occurred while disabling the timer${NORMAL}"
+    fi
+    # Stop service
+    echo -n "Stopping the service... "
+    if ! sudo systemctl stop "$UNITNAME.service"; then
+        echo -e "\n${RED}An error has occurred while stopping the service${NORMAL}"
+    else
+        echo "Ok"
+    fi
+    # Disable service
+    echo -n "Disabling the service... "
+    if ! sudo systemctl disable "$UNITNAME.service"; then
+        echo -e "\n${RED}An error has occurred while disabling the service${NORMAL}"
+    else
+        echo "Ok"
+    fi
+    # Reload daemons
+    echo -n "Reloading daemons... "
+    if ! sudo systemctl daemon-reload; then
+        echo -e "\n${RED}An error has occurred while reloading daemons${NORMAL}"
+    else
+        echo "Ok"
+    fi
+    # Delete units
+    echo "Deleting unit files:"
+    if [[ -f "$SYSTEM_SERVICE_PATH" ]]; then
+        echo "  $SYSTEM_SERVICE_PATH"
+        if ! sudo rm -f "$SYSTEM_SERVICE_PATH"; then
+            echo -e "${RED}An error has occurred while deleting $SYSTEM_SERVICE_PATH${NORMAL}"
+        fi
+    else
+        echo "  $SYSTEM_SERVICE_PATH - does not exist."
+    fi
+    if [[ -f "$SYSTEM_TIMER_PATH" ]]; then
+        echo "  $SYSTEM_TIMER_PATH"
+        if ! sudo rm -f "$SYSTEM_TIMER_PATH"; then
+            echo -e "${RED}An error has occurred while deleting $SYSTEM_TIMER_PATH${NORMAL}"
+        fi
+    else
+        echo "  $SYSTEM_TIMER_PATH - does not exist."
+    fi
 }>&1
 
 function GetServiceStatus() {
