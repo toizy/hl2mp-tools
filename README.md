@@ -4,6 +4,7 @@ This is a set of BASH scripts for cleaning Valve Source servers, such as Half-Li
 
 - Zip and delete .dem files
 - Zip and delete log files
+- Parse demo headers for collecting common info
 - Check free space on disks and notify the user if the space level is too low
 - Notify the user about the execution status through the Telegram bot
 - Run as a systemd timer hourly, daily, etc.
